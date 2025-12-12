@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Copenhague 2026</title>
+    <meta name="theme-color" content="#2A5B87">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjEmITawppNohDJ8yrB5o888YMWrpJEralMwMFGkTZk5sZhkGMQ1GvbuolJodMly8kmKLZT4C92Kv4YU_i1af3g37qbujkH2lQRWOp2M9YV8f72mjuEjje6ceLT63u6tqqNtQclutrF3ArKV3hEtRv7tdWzabxGzSWajw2p0_whKmJh9c869TEjq9MLc0k/s2048/Gemini_Generated_Image_1odwzv1odwzv1odw.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fjord: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' },
+                        mountain: { 500: '#3A7D44' },
+                        sunset: { 500: '#FFB347' },
+                    },
+                    fontFamily: {
+                        sans: ['Roboto Condensed', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* CRITICAL FIXES FOR MOBILE LAYOUT */
+        html, body { 
+            height: 100%; 
+            width: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overscroll-behavior-y: none; /* Prevent pull-to-refresh */
+        }
+        body { 
+            font-family: 'Roboto Condensed', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            /* Use dynamic viewport height for mobile browsers */
+            height: 100dvh; 
+        }
+        #root {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* Hide scrollbar but keep functionality */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .instagram-gradient {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 overflow-hidden">
+    <div id="root" class="h-full"></div>
+
+    <!-- Leaflet JS (Global) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Import Map (Cleaned) -->
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.263.1",
+    "recharts": "https://esm.sh/recharts@2.12.0",
+    "leaflet": "https://esm.sh/leaflet@1.9.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
+
+    <!-- Main Application Code -->
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo, useRef } from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { 
+            CalendarClock, Map as MapIcon, Wallet, BookOpen, Anchor, 
+            AlertTriangle, CheckCircle2, Circle, Clock, MapPin, 
+            ArrowRight, Info, Volume2, Thermometer, ShoppingBag, 
+            Camera, Sun, Moon, CloudRain, Wind, ExternalLink, Ticket,
+            Instagram, Languages, Phone, Headphones, Play, Square
+        } from 'lucide-react';
+
+        // --- CONSTANTS & DATA (COPENHAGUE 2026) ---
+        const SHIP_DEPARTURE_TIME = "18:00";
+        const SHIP_ONBOARD_TIME = "17:30"; // Todos a bordo UPDATED
+        const STORAGE_KEY = 'cph_guide_final_v11_stroget'; 
+        
+        // Coordenadas Itinerario
+        const COORDS = {
+            OCEANKAJ: { lat: 55.7161, lng: 12.6015 }, // Muelle
+            OSTERPORT: { lat: 55.6924, lng: 12.5873 },
+            SIRENITA: { lat: 55.69286, lng: 12.59928 },
+            KASTELLET: { lat: 55.69116, lng: 12.59422 },
+            NYHAVN: { lat: 55.67954, lng: 12.59103 },
+            AMALIENBORG: { lat: 55.68406, lng: 12.59303 },
+            STROGET_CENTER: { lat: 55.6793, lng: 12.5760 },
+            RUNDETAARN: { lat: 55.68136, lng: 12.57572 },
+            ROSENBORG: { lat: 55.68598, lng: 12.57748 },
+            NORREPORT: { lat: 55.6833, lng: 12.5715 }
+        };
+
+        // --- AUDIO GUIDE CONTENT (From PDF) ---
+        const AUDIO_PLAYLISTS = {
+            '3': [ // La Sirenita y Kastellet
+                {
+                    title: "Intro: Bienvenidos a København",
+                    text: "¡Velkommen! Soy tu guía virtual. Hoy vamos a caminar por la historia de la monarquía danesa, cuentos de hadas y arquitectura renacentista. Prepárate para descubrir por qué los daneses son considerados una de las sociedades más felices del mundo. ¡Empezamos!"
+                },
+                {
+                    title: "Pista 1: Den Lille Havfrue (La Sirenita)",
+                    text: "Caminamos por el muelle de Langelinie, un largo paseo marítimo que es la puerta de entrada al puerto de Copenhague. Al final, encontrarán la escultura de bronce más famosa de Dinamarca, aunque a menudo sorprende a los visitantes por su tamaño modesto.\n\nHistoria y Datos Curiosos:\n\nInspiración Literaria: La estatua fue creada por el escultor danés Edvard Eriksen e inaugurada el 23 de agosto de 1913. Está inspirada en el cuento de hadas de Hans Christian Andersen de 1837 sobre una sirena que renuncia a su vida en el mar por amor.\n\nEl Mecenas: La obra fue un regalo a la ciudad de Copenhague de parte de Carl Jacobsen, el hijo del fundador de la cervecería Carlsberg, quien quedó profundamente conmovido por una adaptación de ballet del cuento en el Teatro Real Danés.\n\nLos Modelos: La cabeza de la estatua fue modelada a partir de la famosa bailarina danesa Ellen Price, pero debido a que ella se negó a posar desnuda, el cuerpo fue modelado a partir de la esposa de Eriksen, Eline Eriksen.\n\nTamaño: Prepárense: la estatua es sorprendentemente pequeña. Mide solo 1.25 metros de altura y pesa 175 kg. Su modestia es parte de su encanto y su fama mundial.\n\nUna Vida Turbulentísima:\nA pesar de su apariencia serena, La Sirenita ha tenido una vida muy agitada y se ha convertido en un blanco frecuente de vandalismo y protestas políticas a lo largo de los años. Ha sido:\n- Decapitada dos veces (en 1964 y 1998).\n- Arrojada al agua de su roca base en 2003 usando explosivos.\n- Cubierta de pintura en múltiples ocasiones.\n\nConsejo: La mejor hora para visitarla es temprano por la mañana o al final de la tarde para evitar multitudes."
+                },
+                {
+                    title: "Pista 2: Kastellet (La Ciudadela)",
+                    text: "Justo detrás de La Sirenita y al entrar en el Churchillparken, nos encontramos con la magnífica y aún operativa fortificación de Kastellet. Es una de las fortalezas mejor conservadas del norte de Europa.\n\nUn Diseño de Estrella:\nKastellet fue construido en el siglo XVII y tiene la inconfundible forma de una estrella de cinco puntas o pentágono, rodeada de un foso. Fue una extensión de la muralla defensiva iniciada por el rey Cristián IV.\n\nUso Actual:\nAunque hoy es un hermoso parque público, Kastellet sigue siendo una base militar activa. Aún se puede ver a los militares en servicio.\n\nPuntos Destacados:\n\n1. Las Puertas: La Puerta del Rey y la Puerta de Noruega son ejemplos del barroco holandés.\n2. El Molino de Viento: De 1847, utilizado para moler grano para la guarnición.\n3. La Iglesia de la Ciudadela: Construida en 1703, solía tener aberturas de sonido a la cárcel contigua para los prisioneros.\n4. El Foso: Un lugar maravilloso para un paseo tranquilo.\n\nEn Churchillparken también encontrarán la Iglesia Anglicana de St. Alban y la impresionante Fuente de Gefion."
+                }
+            ],
+            '4': [ // Nyhavn
+                {
+                    title: "Nyhavn: El Puerto Nuevo",
+                    text: "Probablemente, esta es la imagen que tienes en tu cabeza cuando piensas en Copenhague. Casas de colores brillantes, barcos de madera y mucho ambiente.\n\nHistoria canalla:\nAunque hoy es \"chic\" y caro, históricamente era el barrio de los marineros, lleno de tabernas, prostitución y peleas.\n\nEl vecino famoso:\nBusca las casas número 18, 20 y 67. Hans Christian Andersen vivió en todas ellas en diferentes momentos de su vida. Fue aquí donde escribió sus primeros cuentos.\n\nConsejo de guía:\nEs el lugar perfecto para una pausa, pero los restaurantes aquí son \"trampas para turistas\". Mejor compra una cerveza o un helado en un kiosco y siéntate en el borde del canal con los pies colgando, como hacen los locales. ¡Eso es Hygge!"
+                }
+            ],
+            '5': [ // Canal Tours
+                {
+                    title: "1. Contrastes de la Bahía",
+                    text: "¡Bienvenido a bordo! Estás a punto de ver Copenhague desde su mejor ángulo. Dicen que esta ciudad se construyó para ser vista desde el agua.\n\nAl salir del canal estrecho al puerto principal, el espacio se abre. A tu izquierda (normalmente) verás el contraste brutal entre lo antiguo y lo ultra-moderno.\n\nLa Ópera:\nEse edificio enorme con un techo voladizo gigantesco es la Ópera de Copenhague. Es una de las más caras del mundo, forrada con piedra caliza del sur de Alemania y un vestíbulo decorado con pan de oro.\n\nSkuespilhuset (El Teatro Real):\nUn edificio de ladrillo oscuro y cristal que parece flotar sobre el agua. Por la noche, sus luces verdes bajo el muelle atraen a los peces."
+                },
+                {
+                    title: "2. Christianshavn: La Pequeña Ámsterdam",
+                    text: "El barco cruzará hacia la otra orilla, entrando en los canales de Christianshavn. Aquí la atmósfera cambia. Verás casas flotantes donde la gente vive todo el año (fíjate en sus macetas y bicicletas).\n\nBusca la Espiral:\nMira hacia arriba e intenta localizar una torre con una escalera de caracol dorada por fuera. Es la Iglesia de Nuestro Salvador (Vor Frelsers Kirke). Si te fijas bien, ¡verás gente pequeña subiendo por fuera de la torre!"
+                },
+                {
+                    title: "3. ¡Cuidado con la cabeza!",
+                    text: "Esta es la parte divertida. Entraremos en canales estrechos con puentes muy, muy bajos.\n\nEl desafío:\nEl guía te gritará \"¡Agachen la cabeza!\". No es broma. Algunos puentes son tan bajos que si estás de pie, no lo cuentas. Tocar el techo de los puentes trae buena suerte (o eso dicen los turistas), pero hazlo con cuidado."
+                },
+                {
+                    title: "4. El Diamante Negro",
+                    text: "De vuelta al puerto principal, verás un edificio negro, inclinado y brillante hecho de granito de Zimbabue y cristal ahumado. Es la Biblioteca Real.\n\nEl detalle:\nSe llama \"Diamante Negro\" porque, cuando el sol golpea el agua y se refleja en la fachada inclinada, el edificio brilla como una joya oscura. Es una obra maestra de la arquitectura danesa moderna."
+                },
+                {
+                    title: "5. Leyendas y Consejos",
+                    text: "Pasarás cerca del Parlamento (Christiansborg). Fíjate en la estatua bajo el agua de un hombre y sus hijos (Agnete y el Tritón), una leyenda danesa más triste y menos conocida que la Sirenita, que a veces se ve si el agua está tranquila cerca del puente Højbro.\n\nConsejo de tu guía:\nSi tienes opción, intenta sentarte en el lado derecho del barco para tener las mejores vistas al salir, o en la parte trasera descubierta si no llueve, para sacar fotos sin el reflejo de los cristales. ¡Disfruta del paseo!"
+                }
+            ],
+            '6': [ // Amalienborg
+                {
+                    title: "Pista 1: El Hogar de la Familia Real",
+                    text: "Miren a su alrededor: no estamos frente a un solo palacio, sino frente a cuatro palacios idénticos que rodean un patio octogonal central.\n\nAmalienborg es la residencia de invierno de la Familia Real danesa, aunque en la práctica, es su hogar la mayor parte del año. Cada uno de estos edificios fue diseñado originalmente para familias nobles de alto rango.\n\nEl giro del destino: En 1794, el Palacio de Christiansborg (la antigua residencia real) se quemó. La familia real, sin un lugar donde vivir, compró rápidamente estos cuatro palacios para convertirlos en su nuevo hogar, y así fue como Amalienborg se convirtió en el centro del poder danés.\n\nEl Centro: Federico V\nEn el centro del patio se alza la imponente estatua ecuestre de Federico V, el rey que ordenó la construcción de todo este distrito. La estatua, realizada por el famoso escultor francés J. F. J. Saly, es considerada una de las mejores del mundo. Fíjense en el equilibrio y la elegancia que transmite."
+                },
+                {
+                    title: "Pista 2: El Relevo de la Guardia",
+                    text: "Amalienborg es mundialmente famoso por su ceremonia diaria del Cambio de la Guardia Real (Vagtparaden).\n\nLa Marcha:\nLos Guardias Reales, conocidos como Den Kongelige Livgarde, salen marchando desde su cuartel cerca del Castillo de Rosenborg (nuestra primera parada) a las 11:30 de la mañana.\n\nLa Ceremonia:\nLlegan a la plaza de Amalienborg exactamente a las 12:00 del mediodía para realizar la ceremonia oficial del relevo.\n\nAviso Musical:\nSi ven la bandera del Monarca ondeando sobre uno de los palacios, significa que el Rey o la Reina están en casa. Y si están en casa, la ceremonia es la más grande y viene acompañada por la banda de música de la Guardia Real, ¡un espectáculo que no se pueden perder!"
+                },
+                {
+                    title: "Pista 3: Marmorkirken (Iglesia de Mármol)",
+                    text: "Ahora, den la espalda a la plaza de Amalienborg y miren por la calle Frederiksgade. La vista está perfectamente alineada con una maravilla arquitectónica: la Marmorkirken (La Iglesia de Mármol).\n\nSu nombre oficial es la Iglesia de Federico (Frederiks Kirke), y fue concebida para ser la majestuosa culminación de todo el barrio de Frederiksstaden.\n\nUn Proyecto Gigante:\nLa iglesia se empezó a construir en 1749, pero el proyecto original era tan ambicioso, y requería tanto mármol noruego costoso, que el dinero se agotó. Tras años de parón, la obra quedó abandonada y en ruinas durante más de un siglo.\n\nEl Milagro Financiero:\nFinalmente, un adinerado banquero danés, C.F. Tietgen, compró la ruina en 1874 y financió su finalización. La iglesia se inauguró en 1894, ¡145 años después de que se pusiera la primera piedra!\n\nEl Mayor Domo de Escandinavia:\nAl entrar, levanten la vista. Están bajo el domo de iglesia más grande de Escandinavia, con un diámetro de 31 metros. Está inspirado en la Basílica de San Pedro en Roma.\n\nConsejo: En verano, a menudo se puede subir a la cúpula para disfrutar de una vista espectacular."
+                }
+            ],
+            '7': [ // Strøget
+                {
+                    title: "Pista 1: Kongens Nytorv",
+                    text: "Llegamos al final de nuestra caminata y el espacio se abre de repente. Estamos en Kongens Nytorv, que irónicamente significa \"La Nueva Plaza del Rey\", aunque fue construida en 1670. Es la plaza más grande de la ciudad.\n\n\"Hesten\" (El Caballo):\nAsí llaman los locales a la estatua del Rey Christian V en el centro. Si se fijan bien, el rey está vestido como un emperador romano, pisoteando a una figura que representa la envidia.\n\nTradición estudiantil:\nSi visitan la ciudad en junio, verán camiones llenos de estudiantes recién graduados con gorras blancas dando vueltas alrededor de esta estatua, gritando y celebrando. ¡Es un rito de paso danés!\n\nEl Lujo:\nA un lado, el Hotel D'Angleterre, donde se alojó Michael Jackson. Al otro, Magasin du Nord, la tienda por departamentos más famosa. Dato curioso: Hans Christian Andersen vivió allí en una pequeña habitación en el ático antes de ser famoso."
+                },
+                {
+                    title: "Pista 2: Strøget, la arteria",
+                    text: "Desde la plaza, entramos directamente en Strøget. No es \"una calle\", sino una colección de cinco calles conectadas (1,1 km).\n\nHistoria:\nCuando se hizo peatonal en 1962, la gente protestó: \"¡No somos italianos! ¡Los daneses no nos quedamos parados en la calle!\". Hoy es el lugar más vivo de la ciudad.\n\nEstructura:\nEmpezamos por la parte \"cara\" (marcas de lujo como Prada) y, a medida que avanzamos hacia el Ayuntamiento, las tiendas se vuelven más accesibles (H&M, Zara, souvenirs)."
+                },
+                {
+                    title: "Pista 3: La Fuente de las Cigüeñas",
+                    text: "Caminemos hasta la plaza Amagertorv. Aquí está el punto de encuentro número uno: la Fuente de las Cigüeñas (Storkespringvandet).\n\nEl debate de las aves:\nDurante años se debatió si eran garzas o cigüeñas. Al final, se confirmó: son cigüeñas.\n\nEl baile de las comadronas:\nCuando las estudiantes de partería se gradúan, vienen aquí a bailar alrededor de la fuente cogidas de la mano.\n\nDiseño Danés:\nAquí tienen Illums Bolighus y Royal Copenhagen. Es como un museo donde todo está a la venta."
+                },
+                {
+                    title: "Pista 4: Despedida y Recomendación",
+                    text: "Aquí termina nuestro recorrido guiado.\n\nRecomendación:\nEstán en el lugar perfecto para perderse. Cómprense un hot dog rojo (pølse) en uno de los puestos callejeros de la plaza, siéntense en el borde de la Fuente de las Cigüeñas y simplemente observen pasar la vida de Copenhague.\n\n¡Ha sido un placer ser su guía! Nyd din dag! (¡Disfruten su día!)"
+                }
+            ]
+        };
+
+        // --- GPX DATA (Extraída del archivo) ---
+        const WALKING_ROUTE_POIS = [
+            { name: "CANAL TOURS", lat: 55.680537, lng: 12.58791 },
+            { name: "LA SIRENITA", lat: 55.692863, lng: 12.599281 },
+            { name: "Palacio Amalienborg", lat: 55.684, lng: 12.593211 },
+            { name: "Palacio de Christiansborg", lat: 55.676193, lng: 12.580384 },
+            { name: "Rundetårn", lat: 55.681384, lng: 12.575787 },
+            { name: "Fuente Stork", lat: 55.678833, lng: 12.57958 },
+            { name: "METRO Gammel Strand", lat: 55.677595, lng: 12.578928 },
+            { name: "Nyhavn", lat: 55.680386, lng: 12.589195 },
+            { name: "Castillo de Rosenborg", lat: 55.685716, lng: 12.57741 },
+            { name: "METRO ORIENTKAJ", lat: 55.711837, lng: 12.595177 },
+            { name: "METRO OSTERPORT", lat: 55.692879, lng: 12.58592 },
+            { name: "METRO Norreport", lat: 55.683847, lng: 12.572762 },
+            { name: "METRO Marmorkirken", lat: 55.685127, lng: 12.58903 },
+            { name: "SALIDA JARDINES", lat: 55.684887, lng: 12.582509 },
+            { name: "ENTRADA JARDINES", lat: 55.686845, lng: 12.577232 }
+        ];
+
+        const WALKING_TRACK_COORDS = [
+            [55.692725, 12.585948], [55.692601, 12.586188], [55.692398, 12.586597], [55.692104, 12.587243], [55.692136, 12.587297], 
+            [55.692167, 12.587349], [55.69218, 12.587369], [55.692194, 12.587392], [55.692206, 12.587402], [55.691857, 12.588066], 
+            [55.691737, 12.588173], [55.691747, 12.588187], [55.691767, 12.588215], [55.691715, 12.588273], [55.691657, 12.588353], 
+            [55.691622, 12.588402], [55.691607, 12.588423], [55.691586, 12.588451], [55.691543, 12.588511], [55.691533, 12.588525], 
+            [55.691589, 12.588595], [55.693317, 12.591436], [55.693578, 12.59186], [55.69399, 12.592451], [55.693984, 12.592463], 
+            [55.693972, 12.592493], [55.694041, 12.592587], [55.694105, 12.592731], [55.694142, 12.592905], [55.694164, 12.5931], 
+            [55.69415, 12.593277], [55.694102, 12.593453], [55.693894, 12.593959], [55.693689, 12.594422], [55.693537, 12.594792], 
+            [55.693404, 12.595151], [55.693353, 12.595384], [55.693503, 12.595615], [55.693553, 12.595686], [55.693521, 12.595791], 
+            [55.693517, 12.596472], [55.693566, 12.59669], [55.693583, 12.59684], [55.693609, 12.597019], [55.693625, 12.59722], 
+            [55.693642, 12.597746], [55.69363, 12.597938], [55.693601, 12.598153], [55.693435, 12.598957], [55.693393, 12.599064], 
+            [55.693358, 12.599092], [55.693317, 12.5991], [55.693262, 12.599086], [55.693212, 12.599042], [55.693179, 12.59894], 
+            [55.693155, 12.59892], [55.692997, 12.598936], [55.692828, 12.598912], [55.692656, 12.598866], [55.692553, 12.598837], 
+            [55.692365, 12.598792], [55.691929, 12.598688], [55.691809, 12.598668], [55.691738, 12.598686], [55.691736, 12.598652], 
+            [55.691734, 12.5986], [55.691734, 12.598552], [55.691573, 12.59854], [55.691234, 12.598551], [55.691117, 12.598557], 
+            [55.69103, 12.59856], [55.690486, 12.59857], [55.690383, 12.598566], [55.690241, 12.598518], [55.689621, 12.598196], 
+            [55.689579, 12.598192], [55.689405, 12.598265], [55.689383, 12.598156], [55.689192, 12.597956], [55.689095, 12.597862], 
+            [55.689055, 12.597843], [55.689036, 12.597618], [55.688962, 12.597625], [55.688916, 12.597359], [55.688877, 12.597276], 
+            [55.688457, 12.596911], [55.688135, 12.596633], [55.68805, 12.596559], [55.687968, 12.596492], [55.687206, 12.595864], 
+            [55.686484, 12.595274], [55.686391, 12.595195], [55.686015, 12.594877], [55.685805, 12.5947], [55.685642, 12.594562], 
+            [55.68488, 12.593944], [55.684816, 12.593892], [55.684453, 12.593591], [55.684189, 12.593373], [55.684101, 12.593707], 
+            [55.683907, 12.593546], [55.683721, 12.593391], [55.68381, 12.593055], [55.683491, 12.592791], [55.683409, 12.592719], 
+            [55.683166, 12.592519], [55.683116, 12.59248], [55.682965, 12.592355], [55.68293, 12.592326], [55.682822, 12.592238], 
+            [55.682726, 12.592159], [55.682606, 12.59206], [55.682464, 12.591943], [55.682387, 12.59188], [55.681714, 12.591313], 
+            [55.681644, 12.591253], [55.681584, 12.591201], [55.681524, 12.591149], [55.681524, 12.591149], [55.681722, 12.590406], 
+            [55.681631, 12.590421], [55.681509, 12.590308], [55.681387, 12.590196], [55.681159, 12.59], [55.681058, 12.589914], 
+            [55.680613, 12.589457], [55.680386, 12.58917], [55.680694, 12.587999], [55.680707, 12.587946], [55.680742, 12.587815], 
+            [55.680866, 12.587344], [55.6809, 12.587212], [55.680839, 12.587144], [55.680795, 12.586999], [55.680709, 12.586452], 
+            [55.680751, 12.586425], [55.680824, 12.586332], [55.680856, 12.586252], [55.680873, 12.586178], [55.68088, 12.586098], 
+            [55.680877, 12.586015], [55.680866, 12.585941], [55.680809, 12.585756], [55.680777, 12.585686], [55.680685, 12.585555], 
+            [55.680631, 12.585503], [55.680584, 12.585471], [55.680483, 12.585429], [55.680379, 12.585431], [55.680339, 12.585159], 
+            [55.680327, 12.585105], [55.680313, 12.585006], [55.68031, 12.584981], [55.680307, 12.584963], [55.680301, 12.584928], 
+            [55.680288, 12.584852], [55.680281, 12.584814], [55.680156, 12.584153], [55.679977, 12.583471], [55.679859, 12.583115], 
+            [55.679764, 12.582834], [55.679718, 12.58272], [55.679707, 12.582685], [55.679676, 12.582588], [55.679638, 12.582482], 
+            [55.679594, 12.582366], [55.679423, 12.581872], [55.679265, 12.581259], [55.679142, 12.580618], [55.678977, 12.579699], 
+            [55.678819, 12.579812], [55.678775, 12.579619], [55.678773, 12.579548], [55.67877, 12.579394], [55.678768, 12.579297], 
+            [55.67876, 12.578887], [55.678829, 12.57877], [55.678734, 12.578089], [55.678662, 12.577629], [55.678649, 12.577286], 
+            [55.678641, 12.576683], [55.67864, 12.576652], [55.678638, 12.576562], [55.678615, 12.576136], [55.678638, 12.576101], 
+            [55.678672, 12.576053], [55.679381, 12.575033], [55.679668, 12.574588], [55.679935, 12.574869], [55.680325, 12.574406], 
+            [55.680928, 12.575427], [55.681206, 12.575837], [55.681245, 12.575895], [55.681296, 12.575676], [55.681318, 12.575585], 
+            [55.68137, 12.575374], [55.681411, 12.575233], [55.681622, 12.574884], [55.681706, 12.574794], [55.682183, 12.574496], 
+            [55.682242, 12.574441], [55.682566, 12.574342], [55.682624, 12.574374], [55.682748, 12.574441], [55.6834, 12.57417], 
+            [55.683476, 12.574093], [55.6837, 12.574412], [55.684097, 12.573517], [55.684297, 12.573801], [55.684409, 12.573703], 
+            [55.684513, 12.573828], [55.684584, 12.57355], [55.684644, 12.573744], [55.684668, 12.573781], [55.684717, 12.573944], 
+            [55.684743, 12.573999], [55.684789, 12.57421], [55.684804, 12.574254], [55.684834, 12.574307], [55.686001, 12.575955], 
+            [55.686363, 12.576366], [55.686545, 12.576681], [55.686637, 12.576756], [55.686808, 12.577078], [55.686868, 12.577191], 
+            [55.686663, 12.577523], [55.686589, 12.577788], [55.686436, 12.578157], [55.686078, 12.579019], [55.686028, 12.579139], 
+            [55.685754, 12.579787], [55.685665, 12.579998], [55.685487, 12.580438], [55.685298, 12.580899], [55.685233, 12.581098], 
+            [55.685177, 12.581229], [55.685094, 12.581609], [55.685029, 12.581962], [55.684958, 12.582229], [55.684887, 12.582506], 
+            [55.684882, 12.582525], [55.684763, 12.582424], [55.68476, 12.582433], [55.684745, 12.582492], [55.684868, 12.5826], 
+            [55.68486, 12.582626], [55.684515, 12.583866], [55.684456, 12.584082], [55.684223, 12.58492], [55.684108, 12.585314], 
+            [55.684075, 12.585433], [55.684054, 12.585508], [55.683887, 12.586115], [55.683639, 12.587019], [55.683605, 12.587144], 
+            [55.683668, 12.587197], [55.685246, 12.58854], [55.685215, 12.588669], [55.685168, 12.58863], [55.685115, 12.588835], 
+            [55.68508, 12.588981], [55.685114, 12.589009]
+        ];
+
+        const INITIAL_ITINERARY = [
+            {
+                id: '0b', title: 'Desayuno Buffet', startTime: '07:15', endTime: '07:45',
+                locationName: 'MSC Euribia', coords: COORDS.OCEANKAJ,
+                description: 'Desayuno rápido en Marketplace Buffet.',
+                keyDetails: 'Carga energía para el día.',
+                priceDKK: 0, priceEUR: 0, type: 'food', completed: false
+            },
+            {
+                id: '0', title: 'Llegada a Puerto', startTime: '08:00', endTime: '08:00',
+                locationName: 'Oceankaj', coords: COORDS.OCEANKAJ,
+                description: 'Maniobra de atraque completa.',
+                keyDetails: 'El barco atraca en Oceankaj (Nordhavn).',
+                priceDKK: 0, priceEUR: 0, type: 'logistics', completed: false
+            },
+            {
+                id: '1', title: 'DESEMBARCO Y SHUTTLE', startTime: '08:00', endTime: '08:25',
+                locationName: 'Muelle Oceankaj', endLocationName: 'Bus Stop',
+                coords: COORDS.OCEANKAJ, endCoords: COORDS.OCEANKAJ,
+                description: 'Desembarca y toma el Shuttle Eléctrico o el Bus 164. Hasta la parada de Metro - Oceankaj',
+                keyDetails: '¡CRUCIAL! Domingo: Frecuencia de bus baja. Sé rápido.',
+                priceDKK: 0, priceEUR: 0, type: 'transport', completed: false, notes: 'CRITICAL'
+            },
+            {
+                id: '2', title: 'Metro M4: Oceankaj → Østerport', startTime: '08:25', endTime: '08:45',
+                locationName: 'Estación Orientkaj', endLocationName: 'Estación Østerport',
+                coords: COORDS.OCEANKAJ, endCoords: COORDS.OSTERPORT,
+                description: 'Toma el Metro M4 (Dirección København Syd). Son 2 paradas. COMPRAR BILLETE SENCILLO 1 ZONA.',
+                keyDetails: 'Inicio del itinerario a pie al llegar a las estación de Osterport.',
+                priceDKK: 24, priceEUR: 3.2, type: 'transport', completed: false,
+                ticketUrl: 'https://www.copenhague.es/transporte/'
+            },
+            {
+                id: '3', title: 'La Sirenita y Kastellet', startTime: '08:45', endTime: '09:45',
+                locationName: 'Østerport', endLocationName: 'La Sirenita',
+                coords: COORDS.OSTERPORT, endCoords: COORDS.SIRENITA,
+                description: 'El icono de Copenhague y la ciudadela militar.',
+                keyDetails: 'Foto: No te subas a la roca si está mojada. Cuidado con la multitud.',
+                priceDKK: 0, priceEUR: 0, type: 'sightseeing', completed: false,
+                googleMapsUrl: 'https://maps.app.goo.gl/6Lg1wpRueLWpruYe7',
+                instaTag: 'https://www.instagram.com/explore/tags/denlillehavfrue/'
+            },
+            {
+                id: '4', title: 'Caminata hacia Nyhavn', startTime: '09:45', endTime: '10:00',
+                locationName: 'Kastellet', endLocationName: 'Nyhavn',
+                coords: COORDS.KASTELLET, endCoords: COORDS.NYHAVN,
+                description: 'Paseo escénico bordeando el agua.',
+                keyDetails: 'Disfruta de la arquitectura del puerto.',
+                priceDKK: 0, priceEUR: 0, type: 'logistics', completed: false,
+                googleMapsUrl: 'https://maps.app.goo.gl/Y1SyUi5XBrHapwNTA'
+            },
+            {
+                id: '5', title: 'Paseo por los Canales', startTime: '10:00', endTime: '11:15',
+                locationName: 'Nyhavn', coords: COORDS.NYHAVN,
+                description: 'Recorrido en barco por los canales (Stromma o Netto-Bådene).',
+                keyDetails: 'Vistas únicas desde el agua. Relax total.',
+                priceDKK: 112, priceEUR: 15, type: 'sightseeing', completed: false,
+                ticketUrl: 'https://www.stromma.com/en-dk/copenhagen/sightseeing/sightseeing-by-boat/grand-tour/',
+                instaTag: 'https://www.instagram.com/explore/tags/nyhavn/'
+            },
+            {
+                id: '6', title: 'Palacio de Amalienborg', startTime: '11:40', endTime: '12:30',
+                locationName: 'Amalienborg', coords: COORDS.AMALIENBORG,
+                description: 'Residencia real y cambio de guardia.',
+                keyDetails: 'Cambio de Guardia a las 12:00 en punto. Llega antes.',
+                priceDKK: 0, priceEUR: 0, type: 'sightseeing', completed: false,
+                googleMapsUrl: 'https://maps.app.goo.gl/iuBTxmtgXZQQwrdp6'
+            },
+            {
+                id: '7', title: 'Strøget / Almuerzo Danés', startTime: '12:30', endTime: '14:00',
+                locationName: 'Strøget', coords: COORDS.STROGET_CENTER,
+                description: 'Comida típica (Smørrebrød) y paseo por la calle peatonal.',
+                keyDetails: 'Prueba un Hot Dog danés si quieres ahorrar.',
+                priceDKK: 250, priceEUR: 33, type: 'food', completed: false,
+                googleMapsUrl: 'https://maps.app.goo.gl/4CPoQc6Pn9oB1MWZ6',
+                instaTag: 'https://www.instagram.com/explore/tags/strøget/'
+            },
+            {
+                id: '8', title: 'Torre Redonda (Rundetaarn)', startTime: '14:00', endTime: '15:30',
+                locationName: 'Rundetaarn', coords: COORDS.RUNDETAARN,
+                description: 'Torre astronómica del siglo XVII sin escaleras (rampa).',
+                keyDetails: 'Vistas panorámicas del centro antiguo.',
+                priceDKK: 50, priceEUR: 6.70, type: 'sightseeing', completed: false,
+                ticketUrl: 'https://www.rundetaarn.dk/en/',
+                googleMapsUrl: 'https://maps.app.goo.gl/NdWSQLeUSjG1eo5Z6'
+            },
+            {
+                id: '9', title: 'Castillo de Rosenborg', startTime: '15:30', endTime: '16:30',
+                locationName: 'Rosenborg', coords: COORDS.ROSENBORG,
+                description: 'Castillo renacentista y jardines del rey (Kongens Have).',
+                keyDetails: 'Vista exterior y paseo por los jardines.',
+                priceDKK: 0, priceEUR: 0, type: 'sightseeing', completed: false,
+                googleMapsUrl: 'https://maps.app.goo.gl/wLqhiVC88rwhhuD36'
+            },
+            {
+                id: '10', title: 'Regreso al Barco', startTime: '16:30', endTime: '17:30',
+                locationName: 'Nørreport/Kongens Nytorv', endLocationName: 'Oceankaj',
+                coords: COORDS.NORREPORT, endCoords: COORDS.OCEANKAJ,
+                description: 'Metro M4 hasta Orientkaj + Bus 164.',
+                keyDetails: '¡Cuidado con el Bus 164 en domingo! Sal con margen.',
+                priceDKK: 24, priceEUR: 3.2, type: 'logistics', completed: false, notes: 'CRITICAL'
+            },
+            {
+                id: '11', title: '¡A BORDO! (Límite 17:30)', startTime: '17:30', endTime: '17:30',
+                locationName: 'Pasarela Barco', coords: COORDS.OCEANKAJ,
+                description: 'Hora límite absoluta. Se retira la pasarela.',
+                keyDetails: 'Todos a bordo.',
+                priceDKK: 0, priceEUR: 0, type: 'logistics', completed: false, notes: 'CRITICAL'
+            },
+            {
+                id: '12', title: 'Salida del Barco', startTime: '18:00', endTime: '18:00',
+                locationName: 'Muelle Oceankaj', coords: COORDS.OCEANKAJ,
+                description: 'El MSC Euribia zarpa hacia el siguiente destino.',
+                keyDetails: '¡Hasta la próxima!',
+                priceDKK: 0, priceEUR: 0, type: 'logistics', completed: false
+            }
+        ];
+
+        const DANISH_WORDS = [
+            { word: 'Goddag', phonetic: "Gou'-day", simplified: 'Gou-dey', meaning: 'Hola / Buenos días' },
+            { word: 'Tak', phonetic: 'Tack', simplified: 'Tak', meaning: 'Gracias' },
+            { word: 'Farvel', phonetic: "Fa-vel'", simplified: 'Fa-vel', meaning: 'Adiós' },
+            { word: 'Oceankaj', phonetic: "O-shen-kai", simplified: 'O-shen-kay', meaning: 'Muelle de Cruceros' },
+            { word: 'Østerport', phonetic: "Oes-ta-po-rt", simplified: 'Os-ta-port', meaning: 'Estación/Puerta Este' },
+            { word: 'Amalienborg', phonetic: "A-ma-lien-borg", simplified: 'A-ma-lien-bor', meaning: 'Palacio Real' },
+            { word: 'Rundetaarn', phonetic: "Run-de-tarn", simplified: 'Run-de-tarn', meaning: 'Torre Redonda' },
+            { word: 'Rosenborg', phonetic: "Ro-sen-borg", simplified: 'Ro-sen-bor', meaning: 'Castillo de la Rosa' },
+            { word: 'Krydstogtterminal', phonetic: "Krus-togt-ter-mi-nal", simplified: 'Krus-tog-terminal', meaning: 'Terminal de Cruceros' },
+            { word: 'Den Lille Havfrue', phonetic: 'Den Lí-lle Ja-fru-e', simplified: 'Den Lile Jaf-ru', meaning: 'La Sirenita' },
+            { word: 'Nyhavn', phonetic: "Níu-jau-n", simplified: 'Niu-yaun', meaning: 'Puerto Nuevo' },
+            { word: 'Strøget', phonetic: "Stroig't", simplified: 'Stroiet', meaning: 'La calle peatonal' },
+            { word: 'Hygge', phonetic: "Hju-ga", simplified: 'Hiu-ga', meaning: 'Acogedor / Bienestar' },
+            { word: 'Øl', phonetic: "Oel", simplified: 'Ol', meaning: 'Cerveza' }
+        ];
+
+        // --- UTILS ---
+        const calculateDistance = (coord1, coord2) => {
+            if(!coord1 || !coord2) return 0;
+            const R = 6371e3;
+            const φ1 = (coord1.lat * Math.PI) / 180;
+            const φ2 = (coord2.lat * Math.PI) / 180;
+            const Δφ = ((coord2.lat - coord1.lat) * Math.PI) / 180;
+            const Δλ = ((coord2.lng - coord1.lng) * Math.PI) / 180;
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        };
+
+        const calculateDuration = (startStr, endStr) => {
+            const [startH, startM] = startStr.split(':').map(Number);
+            const [endH, endM] = endStr.split(':').map(Number);
+            let diffMins = (endH * 60 + endM) - (startH * 60 + startM);
+            const hours = Math.floor(diffMins / 60);
+            const minutes = diffMins % 60;
+            if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+            if (hours > 0) return `${hours}h`;
+            return `${minutes} min`;
+        };
+        
+        const calculateGap = (endStrPrev, startStrNext) => {
+            const [endH, endM] = endStrPrev.split(':').map(Number);
+            const [startH, startM] = startStrNext.split(':').map(Number);
+            const diffMins = (startH * 60 + startM) - (endH * 60 + endM);
+            if (diffMins > 0) return diffMins;
+            return 0;
+        };
+
+        // --- COMPONENTS ---
+
+        // Shared Footer
+        const SharedFooter = () => (
+             <div className="mt-8 mb-6 text-center text-xs text-slate-400 pb-4">
+                <p>ACTUALIZADO EL 06/12/25</p>
+                <p>© 2025- 2026 Gonzalo Arenas de la Hoz</p>
+            </div>
+        );
+
+        // 1. TIMELINE
+        const Timeline = ({ itinerary, onToggleComplete, onLocate, userLocation }) => {
+            const now = new Date();
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const currentTimeVal = currentHours * 60 + currentMinutes;
+
+            const [selectedActivity, setSelectedActivity] = useState(null);
+            const [showAudioModal, setShowAudioModal] = useState(false);
+            const [currentPlaylist, setCurrentPlaylist] = useState([]);
+            const [isSpeaking, setIsSpeaking] = useState(false);
+
+            const isCurrent = (act) => {
+                const [startH, startM] = act.startTime.split(':').map(Number);
+                const [endH, endM] = act.endTime.split(':').map(Number);
+                const startVal = startH * 60 + startM;
+                const endVal = endH * 60 + endM;
+                return currentTimeVal >= startVal && currentTimeVal < endVal;
+            };
+
+            const getProgress = (act) => {
+                if (!isCurrent(act)) return 0;
+                const [startH, startM] = act.startTime.split(':').map(Number);
+                const [endH, endM] = act.endTime.split(':').map(Number);
+                const startVal = startH * 60 + startM;
+                const endVal = endH * 60 + endM;
+                const total = endVal - startVal;
+                const elapsed = currentTimeVal - startVal;
+                return Math.min(100, Math.max(0, (elapsed / total) * 100));
+            };
+
+            const speakText = (text) => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'es-ES';
+                    utterance.rate = 1.0;
+                    utterance.onend = () => setIsSpeaking(false);
+                    window.speechSynthesis.speak(utterance);
+                    setIsSpeaking(true);
+                }
+            };
+
+            const stopSpeaking = () => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    setIsSpeaking(false);
+                }
+            };
+
+            return (
+                <div className="pb-32 px-4 pt-4 max-w-lg mx-auto h-full overflow-y-auto">
+                    <h2 className="text-2xl font-bold text-fjord-500 mb-6">Itinerario Domingo</h2>
+                    
+                    <div className="relative border-l-2 border-fjord-200 ml-3">
+                        {itinerary.map((act, index) => {
+                            const active = isCurrent(act);
+                            const progress = getProgress(act);
+                            const prevAct = index > 0 ? itinerary[index - 1] : null;
+                            const gap = prevAct ? calculateGap(prevAct.endTime, act.startTime) : 0;
+                            
+                            // Distance calculation
+                            let distStr = "";
+                            if (userLocation) {
+                                const dist = calculateDistance(userLocation, act.coords);
+                                distStr = dist > 1000 ? `a ${(dist/1000).toFixed(1)} km` : `a ${Math.round(dist)} m`;
+                            }
+
+                            return (
+                                <div key={act.id}>
+                                    {/* Gap Indicator */}
+                                    {gap > 0 && (
+                                        <div className="ml-6 mb-6 flex items-center justify-center">
+                                            <span className="bg-slate-100 text-slate-500 text-xs px-2 py-1 rounded-full border border-slate-200 flex items-center shadow-sm">
+                                                <Clock size={12} className="mr-1" />
+                                                ⬇ {gap} min traslado/libre
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="mb-8 ml-6 relative">
+                                        {/* Dot */}
+                                        <div 
+                                            className={`absolute -left-[31px] top-0 rounded-full bg-white border-2 cursor-pointer z-10 transition-all ${
+                                                act.completed ? 'border-mountain-500 text-mountain-500' : 
+                                                active ? 'border-sunset-500 text-sunset-500 scale-110 shadow-[0_0_10px_rgba(255,179,71,0.5)]' : 'border-fjord-500 text-fjord-500'
+                                            }`}
+                                            onClick={() => onToggleComplete(act.id)}
+                                        >
+                                            {act.completed ? <CheckCircle2 size={24} /> : <Circle size={24} />}
+                                        </div>
+
+                                        {/* Card */}
+                                        <div 
+                                            className={`p-4 rounded-xl border shadow-sm transition-all relative overflow-hidden active:scale-[0.99] ${
+                                                active ? 'bg-white border-sunset-500 ring-2 ring-sunset-100 shadow-lg' : 
+                                                act.completed ? 'bg-emerald-50 border-emerald-200 opacity-80' : 'bg-white border-fjord-100'
+                                            }`}
+                                            onClick={() => setSelectedActivity(act)}
+                                        >
+                                            {active && (
+                                                <div className="absolute top-0 left-0 h-1 bg-sunset-500 transition-all duration-1000" style={{width: `${progress}%`}} />
+                                            )}
+
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <div className="flex items-center space-x-2 mb-1 flex-wrap gap-y-1">
+                                                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${active ? 'bg-sunset-500 text-white' : 'bg-fjord-100 text-fjord-700'}`}>
+                                                            {act.startTime} - {act.endTime}
+                                                        </span>
+                                                        <span className="text-xs text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                                            {calculateDuration(act.startTime, act.endTime)}
+                                                        </span>
+                                                        {active && <span className="text-[10px] font-bold text-sunset-600 animate-pulse">⚡ EN CURSO</span>}
+                                                    </div>
+                                                    <h3 className="font-bold text-lg text-gray-800 leading-tight">{act.title}</h3>
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                     {act.notes === 'CRITICAL' && <AlertTriangle className="text-red-500" size={20} />}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Distance & Location */}
+                                            <div className="flex items-center text-sm text-gray-600 mb-3 gap-2">
+                                                 <span className="flex items-center truncate max-w-[150px]">
+                                                     <MapPin size={14} className="mr-1 text-fjord-500"/>
+                                                     {act.locationName}
+                                                 </span>
+                                                 {distStr && <span className="text-xs text-fjord-600 font-bold bg-fjord-50 px-1.5 py-0.5 rounded border border-fjord-100">{distStr}</span>}
+                                            </div>
+
+                                            <div className="bg-slate-50 p-3 rounded text-sm text-slate-700 italic border-l-4 border-sunset-500 mb-3">
+                                                "{act.keyDetails}"
+                                            </div>
+
+                                            {/* Action Buttons Row */}
+                                            <div className="flex gap-2 mt-3 overflow-x-auto pb-1 no-scrollbar">
+                                                 <button 
+                                                    onClick={(e) => { e.stopPropagation(); onLocate(act.coords, act.endCoords); }}
+                                                    className="flex items-center text-xs font-medium bg-fjord-50 text-fjord-700 px-3 py-1.5 rounded-lg border border-fjord-200 whitespace-nowrap"
+                                                 >
+                                                    <MapPin size={14} className="mr-1" /> Ubicación
+                                                 </button>
+                                                 {act.googleMapsUrl && (
+                                                     <button 
+                                                        onClick={(e) => { e.stopPropagation(); window.open(act.googleMapsUrl, '_blank'); }}
+                                                        className="flex items-center text-xs font-medium bg-white text-green-700 px-3 py-1.5 rounded-lg border border-green-200 whitespace-nowrap"
+                                                     >
+                                                        <MapIcon size={14} className="mr-1" /> 🗺️ Ver Recorrido
+                                                     </button>
+                                                 )}
+                                                 {act.ticketUrl && (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); window.open(act.ticketUrl, '_blank'); }}
+                                                        className="flex items-center text-xs font-medium bg-orange-50 text-orange-700 px-3 py-1.5 rounded-lg border border-orange-200 whitespace-nowrap"
+                                                    >
+                                                        <Ticket size={14} className="mr-1" /> Tickets
+                                                    </button>
+                                                 )}
+                                                 
+                                                 {/* AUDIO GUIDE BUTTON */}
+                                                 {AUDIO_PLAYLISTS[act.id] && (
+                                                     <button 
+                                                        onClick={(e) => { 
+                                                            e.stopPropagation(); 
+                                                            setCurrentPlaylist(AUDIO_PLAYLISTS[act.id]); 
+                                                            setShowAudioModal(true); 
+                                                        }}
+                                                        className="flex items-center text-xs font-medium bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 whitespace-nowrap shadow-sm"
+                                                     >
+                                                        <Headphones size={14} className="mr-1" /> Audioguía
+                                                     </button>
+                                                 )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <SharedFooter />
+
+                    {/* Modal Detalle */}
+                    {selectedActivity && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedActivity(null)}>
+                            <div className="bg-white rounded-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto p-6 shadow-2xl animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+                                <div className="flex justify-between items-start mb-4">
+                                    <h3 className="text-xl font-bold text-fjord-800">{selectedActivity.title}</h3>
+                                    <button onClick={() => setSelectedActivity(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+                                </div>
+                                <div className="space-y-4">
+                                    <p className="text-gray-600 leading-relaxed">{selectedActivity.description}</p>
+                                    
+                                    <div className="bg-slate-100 p-4 rounded-xl">
+                                        <p className="font-bold text-sm text-slate-700 mb-2">Detalles Clave:</p>
+                                        <p className="text-sm text-slate-600">{selectedActivity.keyDetails}</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {selectedActivity.ticketUrl && (
+                                            <a href={selectedActivity.ticketUrl} target="_blank" className="col-span-2 flex items-center justify-center bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md hover:bg-orange-600">
+                                                <Ticket className="mr-2" size={18}/> Comprar Tickets
+                                            </a>
+                                        )}
+                                        <button onClick={() => { onLocate(selectedActivity.coords); setSelectedActivity(null); }} className="flex items-center justify-center bg-fjord-100 text-fjord-700 py-3 rounded-xl font-bold">
+                                            <MapPin className="mr-2" size={18}/> Ver Mapa
+                                        </button>
+                                        {selectedActivity.googleMapsUrl && (
+                                            <a href={selectedActivity.googleMapsUrl} target="_blank" className="flex items-center justify-center bg-green-100 text-green-700 py-3 rounded-xl font-bold">
+                                                <MapIcon className="mr-2" size={18}/> Ruta
+                                            </a>
+                                        )}
+                                        {selectedActivity.instaTag && (
+                                            <a href={selectedActivity.instaTag} target="_blank" className="col-span-2 flex items-center justify-center instagram-gradient text-white py-3 rounded-xl font-bold shadow-md">
+                                                <Instagram className="mr-2" size={18}/> Ver en Instagram
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Audioguía */}
+                    {showAudioModal && (
+                        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={() => { setShowAudioModal(false); stopSpeaking(); }}>
+                            <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-lg h-[85vh] sm:h-[80vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300" onClick={e => e.stopPropagation()}>
+                                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-indigo-50 rounded-t-2xl">
+                                    <div className="flex items-center text-indigo-800">
+                                        <Headphones className="mr-2" size={24}/>
+                                        <h3 className="font-bold text-lg">Audioguía</h3>
+                                    </div>
+                                    <button onClick={() => { setShowAudioModal(false); stopSpeaking(); }} className="p-2 bg-white rounded-full text-gray-500 hover:bg-gray-100">✕</button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                                    {currentPlaylist && currentPlaylist.length > 0 ? (
+                                        currentPlaylist.map((track, idx) => (
+                                            <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                                <h4 className="font-bold text-indigo-700 mb-2 text-lg">{track.title}</h4>
+                                                <div className="text-gray-700 leading-relaxed whitespace-pre-line text-sm mb-4">
+                                                    {track.text}
+                                                </div>
+                                                <div className="flex space-x-2">
+                                                    <button 
+                                                        onClick={() => speakText(track.text)}
+                                                        className="flex-1 flex items-center justify-center bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow"
+                                                    >
+                                                        <Play size={16} className="mr-2 fill-current"/> Escuchar
+                                                    </button>
+                                                    {isSpeaking && (
+                                                        <button 
+                                                            onClick={stopSpeaking}
+                                                            className="px-4 bg-red-100 text-red-600 rounded-lg font-bold hover:bg-red-200"
+                                                        >
+                                                            <Square size={16} className="fill-current"/>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center text-gray-500 p-8">No hay contenido disponible.</div>
+                                    )}
+                                    <div className="h-10"></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // 2. BUDGET (CSS ONLY)
+        const Budget = ({ itinerary }) => {
+            const [currency, setCurrency] = useState('DKK'); // Default DKK
+            // Independent Calculator State
+            const [calcAmount, setCalcAmount] = useState('');
+            const [calcDirection, setCalcDirection] = useState('DKK_TO_EUR'); // or EUR_TO_DKK
+            const RATE = 7.46; // 1 EUR = 7.46 DKK
+
+            const paidActivities = useMemo(() => itinerary.filter(a => a.priceDKK > 0), [itinerary]);
+            const total = useMemo(() => paidActivities.reduce((acc, curr) => acc + (currency === 'EUR' ? curr.priceEUR : curr.priceDKK), 0), [paidActivities, currency]);
+            
+            // Manual Expenses
+            const [manualExpenses, setManualExpenses] = useState([]);
+            const [newExpenseName, setNewExpenseName] = useState('');
+            const [newExpenseCost, setNewExpenseCost] = useState('');
+
+            const addExpense = () => {
+                if(newExpenseName && newExpenseCost) {
+                    setManualExpenses([...manualExpenses, { name: newExpenseName, cost: parseFloat(newExpenseCost) }]);
+                    setNewExpenseName('');
+                    setNewExpenseCost('');
+                }
+            };
+            const manualTotal = manualExpenses.reduce((acc, curr) => acc + curr.cost, 0);
+            
+            // Calculate progress bars logic (simple CSS width)
+            const completedActivities = paidActivities.filter(a => a.completed);
+            const spent = completedActivities.reduce((acc, curr) => acc + (currency === 'EUR' ? curr.priceEUR : curr.priceDKK), 0) + manualTotal;
+            const progressPct = Math.min(100, (spent / (total + manualTotal || 1)) * 100);
+
+            // Calculator Result
+            const calcResult = useMemo(() => {
+                const val = parseFloat(calcAmount);
+                if(isNaN(val)) return '---';
+                if(calcDirection === 'DKK_TO_EUR') return (val / RATE).toFixed(2) + ' €';
+                return (val * RATE).toFixed(0) + ' DKK';
+            }, [calcAmount, calcDirection]);
+
+            return (
+                <div className="pb-32 px-4 pt-6 max-w-lg mx-auto h-full overflow-y-auto">
+                    {/* Independent Currency Calculator */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
+                        <div className="flex justify-between items-center mb-3">
+                            <h3 className="font-bold text-slate-700 flex items-center"><Wallet size={16} className="mr-2"/> Calculadora Rápida</h3>
+                            <button 
+                                onClick={() => setCalcDirection(prev => prev === 'DKK_TO_EUR' ? 'EUR_TO_DKK' : 'DKK_TO_EUR')}
+                                className="text-xs bg-fjord-50 text-fjord-600 px-2 py-1 rounded border border-fjord-100 font-bold"
+                            >
+                                ⇄ {calcDirection === 'DKK_TO_EUR' ? 'DKK → EUR' : 'EUR → DKK'}
+                            </button>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                            <input 
+                                type="number" 
+                                value={calcAmount}
+                                onChange={e => setCalcAmount(e.target.value)}
+                                placeholder="0"
+                                className="w-1/2 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xl font-bold text-slate-800 focus:outline-none focus:border-fjord-500 select-text"
+                            />
+                            <div className="text-2xl font-bold text-fjord-600">
+                                = {calcResult}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-fjord-500">Presupuesto</h2>
+                        <div className="flex bg-slate-200 rounded-lg p-1">
+                            <button onClick={() => setCurrency('EUR')} className={`px-3 py-1 text-sm rounded-md font-bold transition-colors ${currency === 'EUR' ? 'bg-white shadow text-fjord-600' : 'text-slate-500'}`}>EUR</button>
+                            <button onClick={() => setCurrency('DKK')} className={`px-3 py-1 text-sm rounded-md font-bold transition-colors ${currency === 'DKK' ? 'bg-white shadow text-fjord-600' : 'text-slate-500'}`}>DKK</button>
+                        </div>
+                    </div>
+
+                    {/* Summary Card */}
+                    <div className="bg-gradient-to-r from-fjord-500 to-fjord-600 rounded-xl p-6 text-white shadow-lg mb-8">
+                        <div className="flex justify-between items-end mb-2">
+                            <div>
+                                <p className="text-fjord-100 text-sm uppercase tracking-wide">Gastado</p>
+                                <div className="text-4xl font-bold">{currency === 'EUR' ? `€${spent.toFixed(0)}` : `${spent.toFixed(0)} kr`}</div>
+                            </div>
+                            <div className="text-right opacity-80">
+                                <p className="text-xs">Presupuesto</p>
+                                <p className="font-bold">{currency === 'EUR' ? `€${total.toFixed(0)}` : `${total.toFixed(0)} kr`}</p>
+                            </div>
+                        </div>
+                        {/* Progress Bar */}
+                        <div className="w-full bg-black/20 rounded-full h-2 mt-2">
+                            <div className="bg-sunset-500 h-2 rounded-full transition-all duration-500" style={{width: `${progressPct}%`}}></div>
+                        </div>
+                    </div>
+
+                    {/* List */}
+                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 mb-8 overflow-hidden">
+                        {paidActivities.map((act) => (
+                            <div key={act.id} className="flex justify-between items-center p-4 border-b border-slate-50 last:border-0">
+                                <div className="flex items-center">
+                                    <div 
+                                        onClick={() => {}} // Could be wired to toggle
+                                        className={`w-4 h-4 rounded-full mr-3 border cursor-pointer flex items-center justify-center ${act.completed ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-300'}`}
+                                    >
+                                        {act.completed && <CheckCircle2 size={12} className="text-white"/>}
+                                    </div>
+                                    <p className="text-sm font-medium text-gray-800">{act.title}</p>
+                                </div>
+                                <div className="font-bold text-gray-700">
+                                    {currency === 'EUR' ? `€${act.priceEUR}` : `${act.priceDKK} kr`}
+                                </div>
+                            </div>
+                        ))}
+                        {manualExpenses.map((exp, i) => (
+                             <div key={`man-${i}`} className="flex justify-between items-center p-4 border-b border-slate-50 bg-yellow-50/50">
+                                <div className="flex items-center">
+                                    <div className="w-3 h-3 rounded-full mr-3 bg-sunset-500"></div>
+                                    <p className="text-sm font-medium text-gray-800">{exp.name} (Manual)</p>
+                                </div>
+                                <div className="font-bold text-gray-700">
+                                    {currency === 'EUR' ? `€${exp.cost}` : `${exp.cost} kr`}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Add Manual */}
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <h4 className="text-sm font-bold text-slate-700 mb-3">+ Añadir Gasto Extra</h4>
+                        <div className="flex gap-2 mb-2">
+                            <input type="text" placeholder="Concepto" className="flex-1 p-2 border rounded text-sm select-text" value={newExpenseName} onChange={e => setNewExpenseName(e.target.value)} />
+                            <input type="number" placeholder="Precio" className="w-20 p-2 border rounded text-sm select-text" value={newExpenseCost} onChange={e => setNewExpenseCost(e.target.value)} />
+                        </div>
+                        <button onClick={addExpense} className="w-full bg-slate-200 text-slate-700 font-bold py-2 rounded text-sm hover:bg-slate-300">Añadir</button>
+                    </div>
+
+                    <SharedFooter />
+                </div>
+            );
+        };
+
+        // 3. GUIDE (Weather, Dictionary, SOS)
+        const Guide = ({ userLocation }) => {
+            const [weather, setWeather] = useState(null);
+            const [forecast, setForecast] = useState(null);
+            const [hourly, setHourly] = useState([]);
+            const [solar, setSolar] = useState({ sunrise: '05:00', sunset: '21:00' });
+            
+            // Text to speech
+            const speak = (text) => {
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'da-DK';
+                    utterance.rate = 0.8;
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            useEffect(() => {
+                // Fetch Weather (Copenhague coords)
+                fetch('https://api.open-meteo.com/v1/forecast?latitude=55.6761&longitude=12.5683&current=temperature_2m,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Europe%2FBerlin&forecast_days=5')
+                    .then(res => res.json())
+                    .then(data => {
+                        setWeather(data.current);
+                        if (data.daily.sunrise[0] && data.daily.sunset[0]) {
+                            setSolar({ 
+                                sunrise: data.daily.sunrise[0].split('T')[1], 
+                                sunset: data.daily.sunset[0].split('T')[1] 
+                            });
+                        }
+                        
+                        // Process Hourly (07:00 - 18:00 today)
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const hours = data.hourly.time
+                            .map((t, i) => ({
+                                time: t,
+                                temp: data.hourly.temperature_2m[i],
+                                rain: data.hourly.precipitation_probability[i],
+                                code: data.hourly.weather_code[i]
+                            }))
+                            .filter(h => h.time.includes(todayStr))
+                            .filter(h => {
+                                const hr = parseInt(h.time.split('T')[1].split(':')[0]);
+                                return hr >= 7 && hr <= 18;
+                            });
+                        setHourly(hours);
+
+                        // 5 Day Forecast
+                        const days = data.daily.time.map((t, i) => ({
+                            date: new Date(t).toLocaleDateString('es-ES', {weekday: 'short'}),
+                            max: data.daily.temperature_2m_max[i],
+                            min: data.daily.temperature_2m_min[i],
+                            code: data.daily.weather_code[i]
+                        }));
+                        setForecast(days);
+                    });
+            }, []);
+
+            // Solar Graph Helpers
+            const getSolarPosition = () => {
+                const now = new Date();
+                const totalMins = now.getHours() * 60 + now.getMinutes();
+                return (totalMins / 1440) * 100;
+            };
+
+            const timeToPct = (timeStr) => {
+                if(!timeStr) return 0;
+                const [h, m] = timeStr.split(':').map(Number);
+                return ((h * 60 + m) / 1440) * 100;
+            };
+
+            const sunrisePct = timeToPct(solar.sunrise);
+            const sunsetPct = timeToPct(solar.sunset);
+
+            // Dynamic Gradient: Night -> Orange (Sunrise) -> Blue (Day) -> Orange (Sunset) -> Night
+            const dynamicGradient = `linear-gradient(90deg, 
+                #1e293b 0%, 
+                #1e293b ${Math.max(0, sunrisePct - 3)}%, 
+                #f59e0b ${sunrisePct}%, 
+                #38bdf8 ${sunrisePct + 3}%, 
+                #38bdf8 ${Math.max(0, sunsetPct - 3)}%, 
+                #f59e0b ${sunsetPct}%, 
+                #1e293b ${Math.min(100, sunsetPct + 3)}%, 
+                #1e293b 100%)`;
+
+            const getWeatherIcon = (code) => {
+                if (code <= 3) return <Sun className="text-yellow-500" />;
+                if (code <= 60) return <CloudRain className="text-gray-400" />;
+                return <CloudRain className="text-blue-500" />;
+            };
+
+            const handleSOS = () => {
+                const lat = userLocation?.lat || 0;
+                const lng = userLocation?.lng || 0;
+                const mapLink = `https://www.google.com/maps?q=${lat},${lng}`;
+                const msg = `🆘 SOS! Necesito ayuda. Mi ubicación actual en Copenhague es: ${mapLink}`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+            };
+
+            return (
+                <div className="pb-32 px-4 pt-6 max-w-lg mx-auto h-full overflow-y-auto">
+                    <h2 className="text-2xl font-bold text-fjord-500 mb-6">Guía y Herramientas</h2>
+
+                    {/* SOS & Apps */}
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                         <button onClick={handleSOS} className="bg-red-600 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center animate-pulse">
+                            <AlertTriangle className="mr-2" /> SOS
+                         </button>
+                         <button onClick={() => window.open('https://play.google.com/store/apps/details?id=com.msccruises.mscforme', '_blank')} className="bg-blue-900 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center">
+                            <Anchor className="mr-2" /> MSC App
+                         </button>
+                    </div>
+
+                    {/* Translator */}
+                    <div className="bg-indigo-600 text-white p-4 rounded-xl shadow-lg mb-6 flex justify-between items-center cursor-pointer" onClick={() => window.open('https://translate.google.com/?sl=da&tl=es&op=images', '_blank')}>
+                         <div>
+                            <h3 className="font-bold">Traductor Visual</h3>
+                            <p className="text-xs text-indigo-200">Apunta con tu cámara</p>
+                         </div>
+                         <Camera size={24} />
+                    </div>
+
+                    {/* Weather */}
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-slate-700 flex items-center"><Thermometer className="mr-2" size={18}/> Clima Hoy</h3>
+                            {weather && <span className="text-2xl font-bold text-fjord-600">{weather.temperature_2m}°C</span>}
+                        </div>
+                        
+                        {/* Hourly Scroll */}
+                        <div className="flex overflow-x-auto gap-3 pb-2 mb-4 snap-x">
+                            {hourly.map((h, i) => (
+                                <div key={i} className="flex-none w-16 bg-slate-50 rounded-lg p-2 text-center border border-slate-100 snap-center">
+                                    <p className="text-xs text-slate-500 font-bold">{h.time.split('T')[1].slice(0,5)}</p>
+                                    <div className="my-1 flex justify-center">{getWeatherIcon(h.code)}</div>
+                                    <p className="text-sm font-bold">{h.temp}°</p>
+                                    <p className="text-[10px] text-blue-500">{h.rain}% 💧</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Solar Cycle Graph (Dynamic) */}
+                        <div className="relative h-20 w-full rounded-xl border border-slate-200 shadow-inner mb-4 overflow-hidden" style={{ background: dynamicGradient }}>
+                             {/* Markers Lines (Dynamic) */}
+                             <div className="absolute top-0 bottom-0 w-[1px] bg-white/40" style={{left: `${sunrisePct}%`}}></div>
+                             <div className="absolute top-0 bottom-0 w-[1px] bg-white/40" style={{left: `${sunsetPct}%`}}></div>
+
+                             {/* Now Marker */}
+                             <div className="absolute top-0 bottom-0 w-0.5 bg-red-600 z-20 shadow-[0_0_5px_rgba(220,38,38,0.8)]" style={{left: `${getSolarPosition()}%`}}></div>
+                             <div className="absolute top-1 text-[9px] font-black text-white bg-red-600 px-1.5 py-0.5 rounded-full transform -translate-x-1/2 shadow-sm z-30" style={{left: `${getSolarPosition()}%`}}>AHORA</div>
+
+                             {/* Time Labels */}
+                             <div className="absolute top-2 text-white/90 text-[10px] font-bold transform -translate-x-1/2" style={{left: `${sunrisePct}%`}}>{solar.sunrise}</div>
+                             <div className="absolute top-2 text-white/90 text-[10px] font-bold transform -translate-x-1/2" style={{left: `${sunsetPct}%`}}>{solar.sunset}</div>
+
+                             {/* Labels */}
+                             <div className="absolute bottom-1 left-2 text-white/80 text-[10px] font-bold flex items-center"><Moon size={10} className="mr-1"/> Noche</div>
+                             <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-white/90 text-[10px] font-bold flex items-center"><Sun size={10} className="mr-1"/> Día</div>
+                             <div className="absolute bottom-1 right-2 text-white/80 text-[10px] font-bold flex items-center">Noche <Moon size={10} className="ml-1"/></div>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-slate-400 font-mono px-1">
+                             <span>00:00</span>
+                             <span>12:00</span>
+                             <span>23:59</span>
+                        </div>
+
+                         {/* 5 Day Forecast */}
+                         <div className="mt-4 border-t border-slate-100 pt-3">
+                            <h4 className="text-xs font-bold text-slate-400 mb-2 uppercase">Próximos 5 días</h4>
+                            <div className="space-y-2">
+                                {forecast && forecast.map((day, i) => (
+                                    <div key={i} className="flex justify-between items-center text-sm">
+                                        <span className="w-10 font-bold text-slate-600">{day.date}</span>
+                                        <div className="flex-1 flex justify-center">{getWeatherIcon(day.code)}</div>
+                                        <span className="text-slate-800 font-medium">{day.max}° / <span className="text-slate-400">{day.min}°</span></span>
+                                    </div>
+                                ))}
+                            </div>
+                         </div>
+                    </div>
+
+                    {/* Dictionary */}
+                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center"><Languages className="mr-2"/> Diccionario Danés</h3>
+                    <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                        {DANISH_WORDS.map((item, idx) => (
+                        <div key={item.word} className={`p-4 flex justify-between items-center ${idx !== DANISH_WORDS.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                            <div>
+                                <div className="flex items-baseline space-x-2">
+                                    <span className="font-bold text-lg text-fjord-600">{item.word}</span>
+                                    <span className="text-xs text-gray-400 font-mono">{item.phonetic}</span>
+                                </div>
+                                <div className="text-sm font-medium text-gray-700 mt-1">
+                                    "{item.simplified}"
+                                </div>
+                                <p className="text-xs text-gray-500 mt-0.5 italic">{item.meaning}</p>
+                            </div>
+                            <button 
+                                onClick={() => speak(item.word)}
+                                className="p-3 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 active:bg-blue-100 active:text-blue-600 transition-colors"
+                            >
+                                <Volume2 size={20} />
+                            </button>
+                        </div>
+                        ))}
+                    </div>
+
+                    <SharedFooter />
+                </div>
+            );
+        };
+
+        // 4. MAP COMPONENT
+        const MapComponent = ({ activities, userLocation, focusedLocation }) => {
+            const mapRef = useRef(null);
+            const mapInstance = useRef(null);
+
+            useEffect(() => {
+                if(!mapRef.current) return;
+                
+                // Init Map
+                if(!mapInstance.current) {
+                    mapInstance.current = L.map(mapRef.current, { zoomControl: false }).setView([55.68, 12.58], 14);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                        attribution: '&copy; OpenStreetMap &copy; CARTO',
+                        maxZoom: 19
+                    }).addTo(mapInstance.current);
+                }
+                const map = mapInstance.current;
+
+                // Icons
+                const pinIcon = L.divIcon({
+                    className: 'custom-pin',
+                    html: '<div style="background-color:#0ea5e9;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.3);"></div>',
+                    iconSize: [12, 12]
+                });
+
+                // Clear
+                map.eachLayer((layer) => {
+                    if(layer instanceof L.Marker || layer instanceof L.Polyline) map.removeLayer(layer);
+                });
+
+                // GPX Track (New)
+                if(WALKING_TRACK_COORDS && WALKING_TRACK_COORDS.length > 0) {
+                    L.polyline(WALKING_TRACK_COORDS, {
+                        color: '#ef4444', // Red-500
+                        weight: 4,
+                        opacity: 0.8,
+                        dashArray: '10, 5',
+                        lineCap: 'round'
+                    }).addTo(map);
+                }
+
+                // GPX POIs (New)
+                const poiIcon = L.divIcon({
+                    className: 'poi-pin',
+                    html: '<div style="background-color:#8b5cf6;width:10px;height:10px;border-radius:50%;border:1px solid white;box-shadow:0 0 4px rgba(0,0,0,0.3);"></div>',
+                    iconSize: [10, 10]
+                });
+
+                WALKING_ROUTE_POIS.forEach(poi => {
+                    if (poi.lat !== 0 && poi.lng !== 0) {
+                        L.marker([poi.lat, poi.lng], { icon: poiIcon })
+                         .addTo(map)
+                         .bindPopup(`<span class="font-bold text-purple-700">${poi.name}</span>`);
+                    }
+                });
+
+                // Markers (Itinerary)
+                activities.forEach(act => {
+                    L.marker([act.coords.lat, act.coords.lng], { icon: pinIcon }).addTo(map).bindPopup(act.title);
+                    if(act.endCoords) {
+                         L.marker([act.endCoords.lat, act.endCoords.lng], { icon: pinIcon }).addTo(map);
+                         L.polyline([[act.coords.lat, act.coords.lng], [act.endCoords.lat, act.endCoords.lng]], {
+                             color: '#38bdf8', weight: 3, dashArray: '5, 10'
+                         }).addTo(map);
+                    }
+                });
+
+                // User
+                if(userLocation) {
+                    const userIcon = L.divIcon({
+                        className: 'user-pin',
+                        html: '<div style="background-color:#3A7D44;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>',
+                        iconSize: [16, 16]
+                    });
+                    L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
+                }
+
+                // FlyTo
+                if(focusedLocation) {
+                    map.flyTo([focusedLocation.lat, focusedLocation.lng], 16);
+                }
+
+            }, [activities, userLocation, focusedLocation]);
+
+            return <div ref={mapRef} className="w-full h-full z-0" />;
+        };
+
+        // --- MAIN APP ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('timeline');
+            const [itinerary, setItinerary] = useState(INITIAL_ITINERARY);
+            const [userLocation, setUserLocation] = useState(null);
+            const [mapFocus, setMapFocus] = useState(null);
+            const [countdown, setCountdown] = useState('');
+
+            // Init Storage
+            useEffect(() => {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if(saved) {
+                    const parsed = JSON.parse(saved);
+                    // Merge saved completion status
+                    const merged = INITIAL_ITINERARY.map(init => {
+                        const s = parsed.find(p => p.id === init.id);
+                        return s ? { ...init, completed: s.completed } : init;
+                    });
+                    setItinerary(merged);
+                } else {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_ITINERARY));
+                }
+            }, []);
+
+            // Geo
+            useEffect(() => {
+                if('geolocation' in navigator) {
+                    navigator.geolocation.watchPosition(
+                        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                        null, { enableHighAccuracy: true }
+                    );
+                }
+            }, []);
+
+            // Countdown Logic
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    const now = new Date();
+                    
+                    // Logic for "Arrival" vs "Departure"
+                    const [arrH, arrM] = "08:00".split(':').map(Number); // Arrival time
+                    const arrivalTime = new Date();
+                    arrivalTime.setHours(arrH, arrM, 0);
+
+                    if(now < arrivalTime) {
+                         const diff = arrivalTime - now;
+                         const hh = Math.floor(diff / 3600000);
+                         const mm = Math.floor((diff % 3600000) / 60000);
+                         setCountdown(`Llegada en: ${hh}h ${mm}m`);
+                    } else {
+                        // Countdown to Onboard Time (17:30)
+                        const [h, m] = SHIP_ONBOARD_TIME.split(':').map(Number);
+                        const target = new Date();
+                        target.setHours(h, m, 0);
+                        
+                        const diff = target - now;
+                        if(diff < 0) setCountdown("¡A BORDO!");
+                        else {
+                            const hh = Math.floor(diff / 3600000);
+                            const mm = Math.floor((diff % 3600000) / 60000);
+                            const ss = Math.floor((diff % 60000) / 1000);
+                            setCountdown(`${hh}h ${mm}m ${ss}s`);
+                        }
+                    }
+                }, 1000);
+                return () => clearInterval(interval);
+            }, []);
+
+            const toggleComplete = (id) => {
+                const next = itinerary.map(a => a.id === id ? { ...a, completed: !a.completed } : a);
+                setItinerary(next);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+            };
+
+            const handleLocate = (coords, endCoords) => {
+                setMapFocus(coords);
+                setActiveTab('map');
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-slate-50 font-sans">
+                    {/* Header */}
+                    <header className="bg-fjord-900 text-white p-3 shadow-md z-20 flex justify-between items-center shrink-0">
+                        <div className="flex items-center">
+                            <Anchor className="mr-2 text-sunset-500" size={20} />
+                            <div>
+                                <h1 className="font-bold text-sm leading-none text-sunset-500 uppercase tracking-wider">Todos a Bordo: {SHIP_ONBOARD_TIME}</h1>
+                                <p className="text-[10px] text-fjord-200">Salida: {SHIP_DEPARTURE_TIME}</p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xl font-mono font-bold text-white tabular-nums">{countdown}</div>
+                        </div>
+                    </header>
+
+                    {/* Content */}
+                    <main className="flex-1 overflow-hidden relative">
+                        {activeTab === 'timeline' && <Timeline itinerary={itinerary} onToggleComplete={toggleComplete} onLocate={handleLocate} userLocation={userLocation} />}
+                        {activeTab === 'map' && <MapComponent activities={itinerary} userLocation={userLocation} focusedLocation={mapFocus} />}
+                        {activeTab === 'budget' && <Budget itinerary={itinerary} />}
+                        {activeTab === 'guide' && <Guide userLocation={userLocation} />}
+                    </main>
+
+                    {/* Nav */}
+                    <nav className="bg-white border-t border-slate-200 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-30 pb-safe shrink-0">
+                        <div className="flex justify-around items-center h-16">
+                            {[
+                                { id: 'timeline', icon: CalendarClock, label: 'Itinerario' },
+                                { id: 'map', icon: MapIcon, label: 'Mapa' },
+                                { id: 'budget', icon: Wallet, label: 'Gastos' },
+                                { id: 'guide', icon: BookOpen, label: 'Guía' }
+                            ].map(tab => (
+                                <button 
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex flex-col items-center w-full h-full justify-center transition-colors ${activeTab === tab.id ? 'text-fjord-600' : 'text-slate-400'}`}
+                                >
+                                    <tab.icon size={24} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
+                                    <span className="text-[10px] mt-1 font-medium">{tab.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </nav>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
